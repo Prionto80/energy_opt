@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GridWise | Operator Chat</title>
+    <style>
+      :root { --ink:#18322a; --muted:#6b7c74; --line:#e2e9e5; --green:#0f7a53; --green-dark:#07563a; --pale:#f5faf7; --white:#fff; }
+      * { box-sizing:border-box; }
+      body { margin:0; min-height:100vh; color:var(--ink); background:var(--white); font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif; }
+      .app { display:grid; grid-template-columns:260px minmax(0,1fr); min-height:100vh; }
+      aside { display:flex; flex-direction:column; padding:18px 14px; color:#effff6; background:#102d24; }
+      .brand { display:flex; align-items:center; gap:10px; padding:7px 8px 24px; font-size:1.15rem; font-weight:800; letter-spacing:-.04em; }
+      .logo { display:grid; place-items:center; width:31px; height:31px; border-radius:9px 9px 3px 9px; color:#102d24; background:#b8f1cf; }
+      .new-chat { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:11px; border:1px solid #41735e; border-radius:9px; color:white; background:transparent; font:inherit; font-weight:700; cursor:pointer; }
+      .new-chat:hover { background:#1b4436; }
+      .sidebar-label { margin:29px 8px 9px; color:#8fa99d; font-size:.7rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+      .history { padding:10px 11px; border-radius:8px; color:#fff; background:#1d4939; font-size:.87rem; }
+      .history small { display:block; margin-top:2px; color:#adbdB5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .sidebar-bottom { margin-top:auto; padding:14px 8px 3px; color:#9db2a8; font-size:.78rem; }
+      .online { display:inline-block; width:7px; height:7px; margin-right:6px; border-radius:50%; background:#7cf0aa; }
+      .content { display:flex; flex-direction:column; min-width:0; min-height:100vh; }
+      header { display:flex; align-items:center; justify-content:space-between; min-height:68px; padding:0 36px; border-bottom:1px solid var(--line); }
+      .model { display:flex; align-items:center; gap:8px; font-weight:750; letter-spacing:-.02em; } .model span { color:var(--muted); font-weight:500; }
+      .api-link { color:var(--muted); text-decoration:none; font-size:.86rem; } .api-link:hover { color:var(--green); }
+      .conversation { width:min(780px,calc(100% - 40px)); margin:0 auto; padding:48px 0 190px; }
+      .welcome { margin:40px 0 32px; text-align:center; } .welcome .spark { display:grid; place-items:center; width:52px; height:52px; margin:0 auto 18px; border-radius:16px; color:var(--green); background:#e4f8eb; font-size:1.5rem; }
+      h1 { margin:0; font-family:Georgia,serif; font-size:clamp(2rem,4vw,3rem); letter-spacing:-.06em; } .welcome p { max-width:510px; margin:12px auto 0; color:var(--muted); }
+      .suggestions { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; margin-top:30px; }
+      .suggestion { padding:16px; border:1px solid var(--line); border-radius:13px; color:var(--ink); background:#fff; text-align:left; font:inherit; cursor:pointer; transition:transform .15s,border-color .15s,box-shadow .15s; }
+      .suggestion:hover { border-color:#8dc8a6; box-shadow:0 8px 24px #0f7a5312; transform:translateY(-2px); } .suggestion b { display:block; font-size:.9rem; } .suggestion span { display:block; margin-top:4px; color:var(--muted); font-size:.8rem; }
+      .messages { display:grid; gap:22px; } .message { display:grid; grid-template-columns:33px 1fr; gap:11px; align-items:start; }
+      .avatar { display:grid; place-items:center; width:33px; height:33px; border-radius:10px; font-size:.8rem; font-weight:800; } .assistant .avatar { color:var(--green); background:#e2f6e9; } .user .avatar { color:#fff; background:#49675a; }
+      .bubble { padding:4px 0; } .bubble .name { margin-bottom:4px; color:var(--muted); font-size:.76rem; font-weight:800; } .bubble p { margin:0; white-space:pre-wrap; }
+      .composer-wrap { position:fixed; right:0; bottom:0; left:260px; padding:20px max(20px,calc((100vw - 780px)/2)); background:linear-gradient(transparent,#fff 26%); }
+      .composer { display:flex; align-items:end; gap:10px; padding:11px 12px 11px 16px; border:1px solid #cfdcd5; border-radius:17px; background:#fff; box-shadow:0 8px 30px #18322a14; }
+      textarea { flex:1; max-height:150px; min-height:28px; padding:3px 0; resize:none; border:0; outline:0; color:var(--ink); background:transparent; font:inherit; }
+      textarea::placeholder { color:#91a097; } .send { display:grid; place-items:center; width:34px; height:34px; flex:0 0 34px; border:0; border-radius:10px; color:#fff; background:var(--green); cursor:pointer; font-size:1rem; } .send:disabled { background:#b7c6be; cursor:not-allowed; }
+      .disclaimer { margin:8px 0 0; color:#89978f; text-align:center; font-size:.72rem; }
+      @media (max-width:720px) { .app { grid-template-columns:1fr; } aside { display:none; } header { padding:0 20px; } .conversation { width:min(100% - 28px,780px); padding-top:28px; } .composer-wrap { left:0; padding:18px 14px; } .suggestions { grid-template-columns:1fr; } .welcome { margin-top:22px; } }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside>
+        <div class="brand"><span class="logo">⚡</span> GridWise</div>
+        <button class="new-chat" id="newChat">＋ New conversation</button>
+        <p class="sidebar-label">Current workspace</p>
+        <div class="history">Campus energy plan<small>Awaiting operator input</small></div>
+        <div class="sidebar-bottom"><span class="online"></span> Energy optimizer online</div>
+      </aside>
+      <main class="content">
+        <header><div class="model">GridWise Assistant <span>· operator mode</span></div><a class="api-link" href="/docs">API documentation ↗</a></header>
+        <section class="conversation" id="conversation">
+          <div class="welcome" id="welcome">
+            <div class="spark">⚡</div>
+            <h1>How can I help plan energy today?</h1>
+            <p>Describe an operating condition, solar event, battery requirement, or grid constraint in plain language.</p>
+            <div class="suggestions">
+              <button class="suggestion" data-prompt="Solar output will drop to about 20% from 1 PM to 3 PM."><b>Solar maintenance</b><span>Report reduced PV output for a time window</span></button>
+              <button class="suggestion" data-prompt="Keep at least 120 kWh in battery reserve from 6 PM until 9 PM."><b>Protect battery reserve</b><span>Set a minimum backup energy target</span></button>
+              <button class="suggestion" data-prompt="Do not charge the battery between 2 PM and 4 PM."><b>Pause charging</b><span>Block a battery operation window</span></button>
+              <button class="suggestion" data-prompt="Grid import must not exceed 190 kWh from 7 PM to 10 PM."><b>Cap grid intake</b><span>Apply a temporary grid-import limit</span></button>
+            </div>
+          </div>
+          <div class="messages" id="messages" aria-live="polite"></div>
+        </section>
+        <div class="composer-wrap">
+          <form class="composer" id="promptForm"><textarea id="prompt" rows="1" placeholder="Message GridWise…" aria-label="Operator prompt"></textarea><button class="send" id="send" type="submit" aria-label="Send prompt">↑</button></form>
+          <p class="disclaimer">GridWise validates directives before they can affect an energy schedule.</p>
+        </div>
+      </main>
+    </div>
+    <script>
+      const prompt = document.getElementById('prompt');
+      const form = document.getElementById('promptForm');
+      const messages = document.getElementById('messages');
+      const welcome = document.getElementById('welcome');
+      const send = document.getElementById('send');
+      function resize() { prompt.style.height = 'auto'; prompt.style.height = Math.min(prompt.scrollHeight, 150) + 'px'; }
+      function addMessage(kind, text) {
+        const message = document.createElement('article'); message.className = `message ${kind}`;
+        message.innerHTML = `<div class="avatar">${kind === 'assistant' ? 'GW' : 'You'}</div><div class="bubble"><div class="name">${kind === 'assistant' ? 'GridWise' : 'You'}</div><p></p></div>`;
+        message.querySelector('p').textContent = text; messages.appendChild(message); message.scrollIntoView({ behavior:'smooth', block:'end' });
+      }
+      function buildRequest(notes) {
+        return {
+          scenario_id: `dashboard-${Date.now()}`,
+          operator_notes: notes,
+          hours: Array.from({ length: 24 }, (_, hour) => ({
+            hour,
+            demand_kwh: hour >= 8 && hour < 18 ? 120 : 90,
+            solar_kwh: hour >= 7 && hour <= 17 ? 80 : 0,
+            tariff_bdt_per_kwh: hour >= 18 || hour < 7 ? 14 : 10
+          })),
+          battery: {
+            capacity_kwh: 240,
+            initial_energy_kwh: 120,
+            minimum_energy_kwh: 20,
+            max_charge_kwh_per_hour: 45,
+            max_discharge_kwh_per_hour: 45
+          }
+        };
+      }
+
+      function formatPlan(result) {
+        const directives = result.directive_interpretation
+          .map(directive => `• ${directive.explanation}`)
+          .join('\n');
+        return `${result.plan_summary}\n\nGrid import: ${result.total_grid_kwh.toFixed(1)} kWh\nTotal cost: ${result.total_cost_bdt.toFixed(2)} BDT\nPeak grid import: ${result.peak_grid_kwh.toFixed(1)} kWh\n\nDirective interpretation:\n${directives}`;
+      }
+
+      async function submitPrompt(value) {
+        const text = value.trim(); if (!text || send.disabled) return;
+        welcome.hidden = true; addMessage('user', text); prompt.value = ''; resize();
+        send.disabled = true;
+        addMessage('assistant', 'Working on the 24-hour plan…');
+        const pendingMessage = messages.lastElementChild.querySelector('p');
+        try {
+          const response = await fetch('/optimize-energy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(buildRequest([text]))
+          });
+          const body = await response.json();
+          if (!response.ok) {
+            const detail = typeof body.detail === 'string' ? body.detail : 'The optimization request was rejected.';
+            throw new Error(detail);
+          }
+          pendingMessage.textContent = formatPlan(body);
+        } catch (error) {
+          pendingMessage.textContent = `I could not generate the plan: ${error.message}`;
+        } finally {
+          send.disabled = false;
+          prompt.focus();
+        }
+      }
+      form.addEventListener('submit', event => { event.preventDefault(); submitPrompt(prompt.value); });
+      prompt.addEventListener('input', resize);
+      prompt.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submitPrompt(prompt.value); } });
+      document.querySelectorAll('[data-prompt]').forEach(button => button.addEventListener('click', () => { prompt.value = button.dataset.prompt; resize(); prompt.focus(); }));
+      document.getElementById('newChat').addEventListener('click', () => { messages.replaceChildren(); welcome.hidden = false; prompt.value = ''; resize(); prompt.focus(); });
+    </script>
+  </body>
+</html>
